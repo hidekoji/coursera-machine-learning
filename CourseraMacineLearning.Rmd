@@ -1,0 +1,156 @@
+---
+title: "Prediction Assignment Writeup"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+### Load Data
+First, download csv files to local machine and constracut training and testing data.
+
+```{r}
+download.file('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv',destfile = "/tmp/training.csv", method = "curl")
+rawTraining <- read.csv("/tmp/training.csv", na.strings = c("NA",""))
+
+download.file('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+',destfile = "/tmp/testing.csv", method = "curl")
+rawTesting <- read.csv("/tmp/testing.csv", na.strings = c("NA",""))
+```
+
+### Test Data Cleanup
+Now, let's exclude columns whose data are NA and unrelated columns from data set.
+As for unrelated columns, we can ignore followings.
+
+ - X
+ - user_name
+ - raw_timestamp_part_1
+ - raw_timestamp_part_2
+ - cvtdtimestamp
+ - new_window
+ 
+```{r echo=FALSE}
+library(dplyr)
+```
+
+```{r}
+# discard NA columns: For each column, summarize the number of NA.
+nacheck <- apply(rawTraining, 2, function(x) {
+  sum(is.na(x))
+})
+
+# select columns whose number of NA is zero
+nonNATraining <- rawTraining[, which(nacheck == 0)]
+
+# Exclude not related columns
+tidyTraining <- nonNATraining %>% select(-(X:new_window))
+
+```
+
+### Create Train and Validattion Data from pml-trainin Data Set
+Since test data (pml-testing) do not contain "classe" data, we need to split train data (pml-training) into "train" and "validate" data so that we can check how well the model fits. 
+
+```{r}
+colnames(tidyTraining)
+```
+
+Now split training data into "training" and "validatation"
+
+```{r echo=FALSE}
+library(caret)
+```
+
+```{r}
+trainIndx <- createDataPartition(tidyTraining$classe, p = 0.7, list = FALSE)
+training <- tidyTraining[trainIndx,]
+validationData <- tidyTraining[-trainIndx,]
+```
+
+
+### Create and Train Model
+By using with 5 fold cross validation, let's create a Random Forest model whose outcome is "classe" and predicotrs are rest of the columns in the training data.
+
+```{r}
+# train control : 5 fold cross validation.
+trControl <- trainControl(method = "cv", number = 5)
+
+# build model
+modelFit <- train(training$classe ~ ., method = "rf", trControl = trControl, data = training)
+
+summary(modelFit)
+
+modelFit$finalModel
+```
+
+### Predict "classe" for Validation Data
+
+#### Apply the model to Validation Data
+Apply the random forest model to the Validation data set and get predictions.
+
+```{r}
+predictions <- predict(modelFit, validationData)
+```
+
+
+### Prediction Results
+Compare the predicted "classe" and "classe" value in validation data set.
+
+```{r}
+table(predictions, validationData$classe)
+```
+
+### Out of Sample Error
+
+From the model fit result displayed below,  error rate is $(1 - 0.997) \cdot 100 = 0.3\%$.
+
+```{r}
+print(modelFit)
+```
+
+Error rate is caluted as follows:
+
+$$
+1 - \frac{number\ of \ correct \ estimates}{number \ of \ predictions} 
+$$
+
+Number of correct estimates is calculated as follows:
+
+```{r}
+sum(predictions == validationData$classe)
+```
+
+and number of predictions is
+
+```{r}
+length(predictions)
+```
+
+So the Out of Sample Error rate is `r round((1 - sum(predictions == validationData$classe)/length(predictions))*100, digits = 2)` %
+
+### Predict "classe" for test data (plm-testing)
+
+#### Clean test data
+Before apply the model to test data, let's clean the test data like we did for train data.
+
+```{r}
+# discard NA columns: For each column, summarize the number of NA.
+nacheckTest <- apply(rawTesting, 2, function(x) {
+  sum(is.na(x))
+})
+
+# select columns whose number of NA is zero
+nonNATesting <- rawTesting[, which(nacheckTest == 0)]
+
+# Exclude not related columns
+testing <- nonNATesting %>% select(-(X:new_window))
+dim(testing)
+```
+
+#### Apply the model to test Data
+Apply the random forest model to the Validation data set and get predictions.
+
+```{r}
+testPredictions <- predict(modelFit, testing)
+testPredictions
+```
+
