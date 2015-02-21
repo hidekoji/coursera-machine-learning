@@ -247,6 +247,23 @@ testPredictions</code></pre>
 ## Levels: A B C D E</code></pre>
 </div>
 </div>
+<div id="for-course-project-submission" class="section level3">
+<h3>For Course Project Submission</h3>
+<p>To make it with pml_write_files function, convert testPredictions to a character vecotr.</p>
+<pre class="r"><code>testPredictionsVector &lt;- c(as.character(testPredictions))</code></pre>
+<p>Then create a plm_write_files function to gengerate .txt file for each prediction</p>
+<pre class="r"><code># write up
+pml_write_files = function(x) {
+    n = length(x)
+    for (i in 1:n) {
+        filename = paste0(&quot;problem_id_&quot;, i, &quot;.txt&quot;)
+        write.table(x[i], file = filename, quote = FALSE, row.names = FALSE, 
+            col.names = FALSE)
+    }
+}</code></pre>
+<p>Call the function with testPredicitons</p>
+<pre class="r"><code>pml_write_files(testPredictions)</code></pre>
+</div>
 
 
 </div>

@@ -154,3 +154,31 @@ testPredictions <- predict(modelFit, testing)
 testPredictions
 ```
 
+### For Course Project Submission
+
+To make it with pml_write_files function, convert testPredictions to a character vecotr.
+
+```{r}
+testPredictionsVector <- c(as.character(testPredictions))
+```
+
+
+Then create a plm_write_files function to gengerate .txt file for each prediction
+
+```{r}
+# write up
+pml_write_files = function(x) {
+    n = length(x)
+    for (i in 1:n) {
+        filename = paste0("problem_id_", i, ".txt")
+        write.table(x[i], file = filename, quote = FALSE, row.names = FALSE, 
+            col.names = FALSE)
+    }
+}
+```
+
+Call the function with testPredicitons
+
+```{r}
+pml_write_files(testPredictions)
+```
